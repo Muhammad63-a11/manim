@@ -29,11 +29,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
+          cache: pip
 
       - name: Install System Dependencies (LaTeX & Graphics)
+        shell: bash
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             ffmpeg \
@@ -44,36 +45,49 @@ jobs:
             pkg-config \
             libpango1.0-dev \
             texlive \
+            texlive-latex-recommended \
             texlive-latex-extra \
             texlive-fonts-extra \
             texlive-science \
-            texlive-latex-recommended \
             texlive-pictures \
             dvisvgm
 
-          # Verify the package that triggered the failure is actually present.
-          kpsewhich physics.sty
+          # physics.sty is supplied by texlive-science. Fail here with a
+          # useful message instead of waiting for the animation render to fail.
+          PHYSICS_STY="$(kpsewhich physics.sty || true)"
+          if [[ -z "$PHYSICS_STY" || ! -f "$PHYSICS_STY" ]]; then
+            echo 'physics.sty was not installed by texlive-science' >&2
+            apt-cache show texlive-science >&2 || true
+            exit 1
+          fi
+          echo "Using $PHYSICS_STY"
 
       - name: Install Python Dependencies
+        shell: bash
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install -e .
+          if [[ -f requirements.txt ]]; then
+            python -m pip install -r requirements.txt
+          fi
+          python -m pip install -e .
 
       - name: Generate Dynamic Media Video
         env:
           USER_FORMULA: ${{ github.event.inputs.formula }}
           USER_STYLE: ${{ github.event.inputs.animation_style }}
+        shell: bash
         run: |
-          set -euxo pipefail
-          echo "$USER_FORMULA" > formula_input.txt
-          echo "$USER_STYLE" > style_input.txt
+          set -euo pipefail
+          printf '%s\n' "$USER_FORMULA" > formula_input.txt
+          printf '%s\n' "$USER_STYLE" > style_input.txt
           mkdir -p videos
           xvfb-run -a manimgl example_scenes.py DynamicTexScene -w
 
       - name: Upload Generated Video
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: physics-animations
           path: videos/
+          if-no-files-found: error
