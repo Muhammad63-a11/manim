@@ -1,0 +1,62 @@
+name: Generate Math & Physics Animations
+
+on:
+  workflow_dispatch:
+    inputs:
+      formula:
+        description: 'Type or Paste your Formula (LaTeX notation supported)'
+        required: true
+        default: 'F = ma'
+        type: string
+      animation_style:
+        description: 'Choose the visual layout for this video'
+        required: true
+        default: 'text_only'
+        type: choice
+        options:
+          - 'text_only'
+          - 'physics_simulation'
+
+jobs:
+  render-video:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install System Dependencies (LaTeX & Graphics)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg freeglut3-dev libgl1-mesa-dev libglu1-mesa-dev xvfb
+          sudo apt-get install -y pkg-config libpango1.0-dev
+          sudo apt-get install -y texlive texlive-latex-extra texlive-fonts-extra dvisvgm
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -e .
+
+      - name: Generate Dynamic Media Video
+        env:
+          USER_FORMULA: ${{ github.event.inputs.formula }}
+          USER_STYLE: ${{ github.event.inputs.animation_style }}
+        run: |
+          set -e
+          echo "$USER_FORMULA" > formula_input.txt
+          echo "$USER_STYLE" > style_input.txt
+          mkdir -p videos
+          xvfb-run -a manimgl example_scenes.py DynamicTexScene -w
+
+      - name: Upload Generated Video
+        uses: actions/upload-artifact@v4
+        with:
+          name: physics-animations
+          path: videos/
