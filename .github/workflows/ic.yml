@@ -1,4 +1,4 @@
-name: Generate Math & Physics Animations
+name: Generate Math & Physics Animations 1
 
 on:
   workflow_dispatch:
