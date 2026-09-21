@@ -36,7 +36,8 @@ jobs:
 
       - name: Generate Manim Video
         run: |
-          manim example_scenes.py TexTransform -l
+          # 3b1b/manim uses 'manimgl' with '-w' flag to write the video file to disk.
+          manimgl example_scenes.py TexTransform -w
 
       - name: Upload Generated Video
         uses: actions/upload-artifact@v4
