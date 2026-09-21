@@ -1,11 +1,13 @@
 name: Generate Math Animations
 
 on:
-  push:
-    branches: [ "master", "main" ]
-  pull_request:
-    branches: [ "master", "main" ]
   workflow_dispatch:
+    inputs:
+      formula:
+        description: 'Type or Paste your LaTeX Formula (e.g., e^{i\\pi} + 1 = 0)'
+        required: true
+        default: 'f(x) = \\int_a^b g(x) dx'
+        type: string
 
 jobs:
   render-video:
@@ -34,10 +36,15 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install -e .
 
-      - name: Generate Manim Video
+      - name: Generate Dynamic Formula Video
+        env:
+          USER_FORMULA: ${{ github.event.inputs.formula }}
         run: |
-          # 3b1b/manim uses 'manimgl' with '-w' flag to write the video file to disk.
-          manimgl example_scenes.py TexTransform -w
+          # 1. Take the formula from the input window and write it to a temporary data file
+          echo "$USER_FORMULA" > formula_input.txt
+          
+          # 2. Run the dynamic layout engine scene
+          manimgl example_scenes.py DynamicTexScene -w
 
       - name: Upload Generated Video
         uses: actions/upload-artifact@v4
