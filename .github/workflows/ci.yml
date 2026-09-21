@@ -1,13 +1,21 @@
-name: Generate Math Animations
+name: Generate Math & Physics Animations
 
 on:
   workflow_dispatch:
     inputs:
       formula:
-        description: 'Type or Paste your LaTeX Formula (e.g., e^{i\\pi} + 1 = 0)'
+        description: 'Type or Paste your Formula (LaTeX notation supported)'
         required: true
-        default: 'f(x) = \\int_a^b g(x) dx'
+        default: 'F = ma'
         type: string
+      animation_style:
+        description: 'Choose the visual layout for this video'
+        required: true
+        default: 'text_only'
+        type: choice
+        options:
+          - 'text_only'
+          - 'physics_simulation'
 
 jobs:
   render-video:
@@ -36,18 +44,20 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install -e .
 
-      - name: Generate Dynamic Formula Video
+      - name: Generate Dynamic Media Video
         env:
           USER_FORMULA: ${{ github.event.inputs.formula }}
+          USER_STYLE: ${{ github.event.inputs.animation_style }}
         run: |
-          # 1. Take the formula from the input window and write it to a temporary data file
+          # Write the UI parameters to text files for Python to read
           echo "$USER_FORMULA" > formula_input.txt
+          echo "$USER_STYLE" > style_input.txt
           
-          # 2. Run the dynamic layout engine scene
+          # Execute the smart rendering engine class
           manimgl example_scenes.py DynamicTexScene -w
 
       - name: Upload Generated Video
         uses: actions/upload-artifact@v4
         with:
-          name: math-animations
+          name: physics-animations
           path: videos/
