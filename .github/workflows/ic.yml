@@ -33,13 +33,30 @@ jobs:
 
       - name: Install System Dependencies (LaTeX & Graphics)
         run: |
+          set -euxo pipefail
           sudo apt-get update
-          sudo apt-get install -y ffmpeg freeglut3-dev libgl1-mesa-dev libglu1-mesa-dev xvfb
-          sudo apt-get install -y pkg-config libpango1.0-dev
-          sudo apt-get install -y texlive texlive-latex-extra texlive-fonts-extra dvisvgm
+          sudo apt-get install -y --no-install-recommends \
+            ffmpeg \
+            freeglut3-dev \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            xvfb \
+            pkg-config \
+            libpango1.0-dev \
+            texlive \
+            texlive-latex-extra \
+            texlive-fonts-extra \
+            texlive-science \
+            texlive-latex-recommended \
+            texlive-pictures \
+            dvisvgm
+
+          # Verify the package that triggered the failure is actually present.
+          kpsewhich physics.sty
 
       - name: Install Python Dependencies
         run: |
+          set -euxo pipefail
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install -e .
@@ -49,7 +66,7 @@ jobs:
           USER_FORMULA: ${{ github.event.inputs.formula }}
           USER_STYLE: ${{ github.event.inputs.animation_style }}
         run: |
-          set -e
+          set -euxo pipefail
           echo "$USER_FORMULA" > formula_input.txt
           echo "$USER_STYLE" > style_input.txt
           mkdir -p videos
